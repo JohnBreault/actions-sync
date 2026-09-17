@@ -182,7 +182,7 @@ func PushWithGitImpl(ctx context.Context, flags *PushFlags, repoName string, ghC
 	}
 
 	fmt.Printf("syncing `%s`\n", nwo)
-	ghRepo, err := getOrCreateGitHubRepo(ctx, ghClient, bareRepoName, ownerName, flags.GitHubApp)
+	ghRepo, created, err := getOrCreateGitHubRepo(ctx, ghClient, bareRepoName, ownerName, flags.GitHubApp)
 	if err != nil {
 		return errors.Wrapf(err, "error creating github repository `%s`", nwo)
 	}
@@ -190,21 +190,27 @@ func PushWithGitImpl(ctx context.Context, flags *PushFlags, repoName string, ghC
 	if err != nil {
 		return errors.Wrapf(err, "error syncing repository `%s`", nwo)
 	}
+	if created {
+		if err := updateDefaultBranch(ctx, ghClient, ownerName, bareRepoName, repoDirPath, gitimpl); err != nil {
+			return errors.Wrapf(err, "error setting default branch for repository `%s`", nwo)
+		}
+	}
 	fmt.Printf("successfully synced `%s`\n", nwo)
 	return nil
 }
 
-func getOrCreateGitHubRepo(ctx context.Context, client *github.Client, repoName, ownerName string, githubApp bool) (*github.Repository, error) {
+func getOrCreateGitHubRepo(ctx context.Context, client *github.Client, repoName, ownerName string, githubApp bool) (*github.Repository, bool, error) {
 	// Determine the org under which to create the repo. With GitHub App auth the
 	// user API is unavailable (App tokens have no user context), so this is
 	// resolved without calling Users.Get.
 	createRepoOrgName, isAE, aeDetermined, err := resolveCreateOrgName(ctx, client, ownerName, githubApp)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// check if repository already exists
 	ghRepo, resp, err := client.Repositories.Get(ctx, ownerName, repoName)
+	created := false
 
 	if err == nil {
 		fmt.Printf("Existing repo `%s/%s`\n", ownerName, repoName)
@@ -230,18 +236,44 @@ func getOrCreateGitHubRepo(ctx context.Context, client *github.Client, repoName,
 
 		ghRepo, _, err = client.Repositories.Create(ctx, createRepoOrgName, repo)
 		if err == nil {
+			created = true
 			fmt.Printf("Created repo `%s/%s`\n", ownerName, repoName)
 		} else {
-			return nil, errors.Wrapf(err, "error creating repository %s/%s", ownerName, repoName)
+			return nil, false, errors.Wrapf(err, "error creating repository %s/%s", ownerName, repoName)
 		}
 	} else if err != nil {
-		return nil, errors.Wrapf(err, "error creating repository %s/%s", ownerName, repoName)
+		return nil, false, errors.Wrapf(err, "error creating repository %s/%s", ownerName, repoName)
 	}
 
 	if ghRepo == nil {
-		return nil, errors.New("error repository is nil")
+		return nil, false, errors.New("error repository is nil")
 	}
-	return ghRepo, nil
+	return ghRepo, created, nil
+}
+
+func updateDefaultBranch(ctx context.Context, client *github.Client, ownerName, repoName, repoDir string, gitimpl GitImplementation) error {
+	gitRepo, err := gitimpl.NewGitRepository(repoDir)
+	if err != nil {
+		return errors.Wrapf(err, "error opening git repository %s", repoDir)
+	}
+
+	head, err := gitRepo.Head()
+	if err != nil {
+		return errors.Wrap(err, "could not resolve the default branch")
+	}
+	if !head.Name().IsBranch() {
+		return errors.Errorf("HEAD does not point at a branch (%s)", head.Name())
+	}
+
+	defaultBranch := head.Name().Short()
+	_, _, err = client.Repositories.Edit(ctx, ownerName, repoName, &github.Repository{
+		DefaultBranch: github.String(defaultBranch),
+	})
+	if err != nil {
+		return errors.Wrapf(err, "error updating repository %s/%s", ownerName, repoName)
+	}
+
+	return nil
 }
 
 // resolveCreateOrgName decides which org the repo should be created under and,
