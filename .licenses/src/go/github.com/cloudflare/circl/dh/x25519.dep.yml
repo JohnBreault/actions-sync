@@ -1,6 +1,6 @@
 ---
 name: github.com/cloudflare/circl/dh/x25519
-version: v1.3.7
+version: v1.6.3
 type: go
 summary: Package x25519 provides Diffie-Hellman functions as specified in RFC-7748.
 homepage: https://pkg.go.dev/github.com/cloudflare/circl/dh/x25519

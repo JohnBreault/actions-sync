@@ -1,6 +1,6 @@
 ---
 name: github.com/cloudflare/circl/ecc/goldilocks
-version: v1.3.7
+version: v1.6.3
 type: go
 summary: Package goldilocks provides elliptic curve operations over the goldilocks
   curve.

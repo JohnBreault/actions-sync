@@ -1,6 +1,6 @@
 ---
 name: github.com/cloudflare/circl/math/fp25519
-version: v1.3.7
+version: v1.6.3
 type: go
 summary: Package fp25519 provides prime field arithmetic over GF(2^255-19).
 homepage: https://pkg.go.dev/github.com/cloudflare/circl/math/fp25519

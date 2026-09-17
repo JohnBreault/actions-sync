@@ -1,6 +1,6 @@
 ---
 name: github.com/cloudflare/circl/sign
-version: v1.3.7
+version: v1.6.3
 type: go
 summary: Package sign provides unified interfaces for signature schemes.
 homepage: https://pkg.go.dev/github.com/cloudflare/circl/sign

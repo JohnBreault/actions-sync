@@ -1,6 +1,6 @@
 ---
 name: github.com/ProtonMail/go-crypto/openpgp/internal/encoding
-version: v1.0.0
+version: v1.1.6
 type: go
 summary: Package encoding implements openpgp packet field encodings as specified in
   RFC 4880 and 6637.

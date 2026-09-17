@@ -1,6 +1,6 @@
 ---
 name: github.com/go-git/go-billy/v5/osfs
-version: v5.5.0
+version: v5.9.0
 type: go
 summary: Package osfs provides a billy filesystem for the OS.
 homepage: https://pkg.go.dev/github.com/go-git/go-billy/v5/osfs

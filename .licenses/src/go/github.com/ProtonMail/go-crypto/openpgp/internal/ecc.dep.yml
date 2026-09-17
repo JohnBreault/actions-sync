@@ -1,6 +1,6 @@
 ---
 name: github.com/ProtonMail/go-crypto/openpgp/internal/ecc
-version: v1.0.0
+version: v1.1.6
 type: go
 summary: Package ecc implements a generic interface for ECDH, ECDSA, and EdDSA.
 homepage: https://pkg.go.dev/github.com/ProtonMail/go-crypto/openpgp/internal/ecc

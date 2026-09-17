@@ -1,6 +1,6 @@
 ---
 name: github.com/ProtonMail/go-crypto/openpgp/ecdsa
-version: v1.0.0
+version: v1.1.6
 type: go
 summary: Package ecdsa implements ECDSA signature, suitable for OpenPGP, as specified
   in RFC 6637, section 5.

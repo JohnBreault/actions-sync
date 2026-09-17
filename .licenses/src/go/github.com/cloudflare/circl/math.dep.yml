@@ -1,6 +1,6 @@
 ---
 name: github.com/cloudflare/circl/math
-version: v1.3.7
+version: v1.6.3
 type: go
 summary: Package math provides some utility functions for big integers.
 homepage: https://pkg.go.dev/github.com/cloudflare/circl/math

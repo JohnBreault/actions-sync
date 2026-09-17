@@ -1,6 +1,6 @@
 ---
 name: github.com/ProtonMail/go-crypto/eax
-version: v1.0.0
+version: v1.1.6
 type: go
 summary: 'Package eax provides an implementation of the EAX (encrypt-authenticate-translate)
   mode of operation, as described in Bellare, Rogaway, and Wagner "THE EAX MODE OF
