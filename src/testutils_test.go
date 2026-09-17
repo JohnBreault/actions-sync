@@ -153,11 +153,13 @@ type fakePullRepo struct {
 	fetchTags     git.TagMode
 	branches      []string
 	headBranch    string
+	headName      plumbing.ReferenceName
 	headErr       error
+	remote        GitRemote
 }
 
 func (r *fakePullRepo) DeleteRemote(string) error                            { return nil }
-func (r *fakePullRepo) CreateRemote(*config.RemoteConfig) (GitRemote, error) { return nil, nil }
+func (r *fakePullRepo) CreateRemote(*config.RemoteConfig) (GitRemote, error) { return r.remote, nil }
 
 func (r *fakePullRepo) References() (storer.ReferenceIter, error) {
 	refs := make([]*plumbing.Reference, 0, len(r.branches))
@@ -170,6 +172,9 @@ func (r *fakePullRepo) References() (storer.ReferenceIter, error) {
 func (r *fakePullRepo) Head() (*plumbing.Reference, error) {
 	if r.headErr != nil {
 		return nil, r.headErr
+	}
+	if r.headName != "" {
+		return plumbing.NewHashReference(r.headName, plumbing.ZeroHash), nil
 	}
 	branch := r.headBranch
 	if branch == "" {
@@ -217,6 +222,7 @@ type fakeGitHub struct {
 	repoGetAE         bool   // set the AE version header on the GET /repos response
 	repoGetStatus     int    // override GET /repos status (0 => derived from repoExists)
 	createRepoStatus  int    // override POST repos status (0 => 201 Created)
+	editRepoStatus    int    // override PATCH repos status (0 => 200 OK)
 	orgCreateConflict bool   // POST /admin/organizations returns 422 (already exists)
 	orgGetExists      bool   // GET /orgs/{org} returns 200 (used as create fallback)
 
@@ -227,6 +233,8 @@ type fakeGitHub struct {
 	createdOrg       string
 	createdName      string
 	createdVis       string
+	defaultBranchSet bool
+	defaultBranch    string
 	createOrgCalled  bool
 	orgGetCalled     bool
 }
@@ -271,6 +279,26 @@ func (f *fakeGitHub) handler(t *testing.T) http.HandlerFunc {
 			}
 			w.WriteHeader(status)
 			_, _ = w.Write([]byte(`{"message":"not found"}`))
+
+		case strings.HasPrefix(r.URL.Path, "/api/v3/repos/") && r.Method == http.MethodPatch:
+			var body struct {
+				DefaultBranch string `json:"default_branch"`
+			}
+			data, _ := io.ReadAll(r.Body)
+			_ = json.Unmarshal(data, &body)
+			f.defaultBranchSet = true
+			f.defaultBranch = body.DefaultBranch
+			if f.editRepoStatus != 0 {
+				w.WriteHeader(f.editRepoStatus)
+				_, _ = w.Write([]byte(`{"message":"validation failed"}`))
+				return
+			}
+			parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v3/repos/"), "/")
+			b, _ := json.Marshal(github.Repository{
+				Name:          github.String(parts[1]),
+				DefaultBranch: github.String(body.DefaultBranch),
+			})
+			_, _ = w.Write(b)
 
 		case strings.HasPrefix(r.URL.Path, "/api/v3/orgs/") && strings.HasSuffix(r.URL.Path, "/repos") && r.Method == http.MethodPost:
 			org := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/v3/orgs/"), "/repos")
