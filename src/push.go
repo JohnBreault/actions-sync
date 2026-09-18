@@ -259,6 +259,9 @@ func updateDefaultBranch(ctx context.Context, client *github.Client, ownerName, 
 
 	head, err := gitRepo.Head()
 	if err != nil {
+		if err == plumbing.ErrReferenceNotFound {
+			return nil
+		}
 		return errors.Wrap(err, "could not resolve the default branch")
 	}
 	if !head.Name().IsBranch() {
