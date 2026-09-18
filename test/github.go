@@ -236,7 +236,29 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-	})
+	}).Methods("GET")
+
+	r.HandleFunc("/api/v3/repos/{owner}/{repo}", func(w http.ResponseWriter, r *http.Request) {
+		var repoReq struct {
+			DefaultBranch string `json:"default_branch,omitempty"`
+		}
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			panic(err)
+		}
+		err = json.Unmarshal(b, &repoReq)
+		if err != nil {
+			panic(err)
+		}
+
+		repoName := mux.Vars(r)["repo"]
+		repo := github.Repository{Name: &repoName, DefaultBranch: &repoReq.DefaultBranch}
+		b, _ = json.Marshal(repo)
+		_, err = w.Write(b)
+		if err != nil {
+			panic(err)
+		}
+	}).Methods("PATCH")
 
 	err := http.ListenAndServe(":"+port, r)
 	if err != nil {

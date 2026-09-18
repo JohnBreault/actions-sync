@@ -716,6 +716,32 @@ func TestPushWithGitImpl_NewRepoRejectsNonBranchHead(t *testing.T) {
 	assert.False(t, f.defaultBranchSet)
 }
 
+func TestPushWithGitImpl_NewRepoSkipsMissingHeadDefaultBranch(t *testing.T) {
+	cacheDir := t.TempDir()
+	require.NoError(t, os.MkdirAll(path.Join(cacheDir, "my-org", "my-action"), 0o755))
+
+	f := &fakeGitHub{repoExists: false}
+	client := f.start(t)
+	repo := &fakePullRepo{
+		headErr: plumbing.ErrReferenceNotFound,
+		remote:  &mockGitRemote{},
+	}
+	gitimpl := &fakePullGitImpl{repo: repo}
+	flags := &PushFlags{
+		CommonFlags: CommonFlags{CacheDir: cacheDir},
+		PushOnlyFlags: PushOnlyFlags{
+			GitHubApp:      true,
+			DisableGitAuth: true,
+		},
+	}
+
+	err := PushWithGitImpl(context.Background(), flags, "source/action:my-org/my-action", client, gitimpl)
+
+	require.NoError(t, err)
+	assert.True(t, f.created)
+	assert.False(t, f.defaultBranchSet)
+}
+
 func TestPushWithGitImpl_NewRepoDefaultBranchUpdateFailure(t *testing.T) {
 	cacheDir := t.TempDir()
 	require.NoError(t, os.MkdirAll(path.Join(cacheDir, "my-org", "my-action"), 0o755))
