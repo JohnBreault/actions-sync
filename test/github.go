@@ -236,7 +236,24 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-	})
+	}).Methods("GET")
+
+	// PATCH is used to update an existing repository, e.g. to set the default
+	// branch after a repo has been freshly created. Unlike the GET handler
+	// above, this must succeed for any repo (not just existingRepo), since
+	// newly created repos aren't tracked by this mock server.
+	r.HandleFunc("/api/v3/repos/{owner}/{repo}", func(w http.ResponseWriter, r *http.Request) {
+		ownerName := mux.Vars(r)["owner"]
+		repoName := mux.Vars(r)["repo"]
+
+		cloneURL := gitDaemonURL + path.Join(ownerName, repoName, ".git")
+		repo := github.Repository{Name: &repoName, CloneURL: &cloneURL}
+		b, _ := json.Marshal(repo)
+		_, err := w.Write(b)
+		if err != nil {
+			panic(err)
+		}
+	}).Methods("PATCH")
 
 	err := http.ListenAndServe(":"+port, r)
 	if err != nil {
