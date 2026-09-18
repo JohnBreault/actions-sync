@@ -217,6 +217,16 @@ func main() {
 		}
 	}).Methods("POST")
 
+	writeRepoResponse := func(w http.ResponseWriter, ownerName, repoName string) {
+		cloneURL := gitDaemonURL + path.Join(ownerName, repoName, ".git")
+		repo := github.Repository{Name: &repoName, CloneURL: &cloneURL}
+		b, _ := json.Marshal(repo)
+		_, err := w.Write(b)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	r.HandleFunc("/api/v3/repos/{owner}/{repo}", func(w http.ResponseWriter, r *http.Request) {
 		ownerName := mux.Vars(r)["owner"]
 		repoName := mux.Vars(r)["repo"]
@@ -229,13 +239,7 @@ func main() {
 			}
 		}
 
-		cloneURL := gitDaemonURL + path.Join(ownerName, repoName, ".git")
-		org := github.Repository{Name: &repoName, CloneURL: &cloneURL}
-		b, _ := json.Marshal(org)
-		_, err := w.Write(b)
-		if err != nil {
-			panic(err)
-		}
+		writeRepoResponse(w, ownerName, repoName)
 	}).Methods("GET")
 
 	// PATCH is used to update an existing repository, e.g. to set the default
@@ -243,16 +247,7 @@ func main() {
 	// above, this must succeed for any repo (not just existingRepo), since
 	// newly created repos aren't tracked by this mock server.
 	r.HandleFunc("/api/v3/repos/{owner}/{repo}", func(w http.ResponseWriter, r *http.Request) {
-		ownerName := mux.Vars(r)["owner"]
-		repoName := mux.Vars(r)["repo"]
-
-		cloneURL := gitDaemonURL + path.Join(ownerName, repoName, ".git")
-		repo := github.Repository{Name: &repoName, CloneURL: &cloneURL}
-		b, _ := json.Marshal(repo)
-		_, err := w.Write(b)
-		if err != nil {
-			panic(err)
-		}
+		writeRepoResponse(w, mux.Vars(r)["owner"], mux.Vars(r)["repo"])
 	}).Methods("PATCH")
 
 	err := http.ListenAndServe(":"+port, r)
